@@ -3,6 +3,7 @@ import json
 import random
 import time
 import traceback
+import socket
 
 import pymysql
 import requests
@@ -262,6 +263,26 @@ async def ws_auth(request, ws):
             "message": "身份验证成功！"
         }
     )
+
+@app.listener('before_server_start')
+async def register_nacos(app, Loop):
+    try:
+        import nacos
+
+        # 自行替换为 Nacos 内网ip地址
+        SERVER_ADDRESSES = "http://172.22.86.169:8848"
+        # Nacos中注册的信息
+        SERVICE_NAME = "device-control"
+        # 自行替换为SAE中获取的内网访问地址,只需要域名,无需携带https://
+        IP = socket.gethostbyname(socket.gethostname())
+        PORT = 9000
+
+        client = nacos.NacosClient (SERVER_ADDRESSES)
+        # 向 Nacos 注册实例
+        client.add_naming_instance(SERVICE_NAME, IP, PORT, ephemeral=False, healthy=True)
+        print(f"向 Nacos 注册成功,注册信息为:{SERVICE_NAME},{IP},{PORT}")
+    except Exception as e:
+        raise RuntimeError(f"向 Nacos 注册失败,错误信息:{e}")
 
 
 if __name__ == "__main__":
